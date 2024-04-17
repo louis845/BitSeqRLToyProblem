@@ -33,7 +33,7 @@ class DQNHERAgent:
                  epsilon: float=1.0,
                  epsilon_min: float=0.01,
                  epsilon_decay: float=0.995,
-                 learning_rate: float=0.05):
+                 learning_rate: float=0.001):
         self.gamma = gamma
         self.epsilon = epsilon
         self.epsilon_min = epsilon_min
@@ -42,7 +42,7 @@ class DQNHERAgent:
 
         self.device = device
         self.model = model
-        self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate, eps=1e-4)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
         self.action_space_size = action_space_size
         self.goal_space_size = goal_space_size
 
@@ -93,30 +93,33 @@ class DQNHERAgent:
                 else:
                     return self.model(state_float).gather(2, self.expand_broadcast_goal(goal)).squeeze(2).argmax(dim=1)
 
-    def replay(self, batch_size) -> float:
-        self.optimizer.zero_grad()
+    def replay(self, batch_size, opt_steps:int=20) -> float:
+        cum_loss = 0.0
+        for _ in range(opt_steps):
+            self.optimizer.zero_grad()
 
-        # sample a minibatch from the memory (goal is omitted)
-        state, action, reward, next_state, done, goal = self.memory.sample(batch_size)
-        state = torch.tensor(state, dtype=torch.float32, device=self.device) # shape (batch_size, state_size)
-        action = torch.tensor(action, dtype=torch.int64, device=self.device) # shape (batch_size,)
-        reward = torch.tensor(reward, dtype=torch.float32, device=self.device) # shape (batch_size,)
-        next_state = torch.tensor(next_state, dtype=torch.float32, device=self.device) # shape (batch_size, state_size)
-        done = torch.tensor(done, dtype=torch.bool, device=self.device) # shape (batch_size,)
-        goal = torch.tensor(goal, dtype=torch.int64, device=self.device) # shape (batch_size,)
+            # sample a minibatch from the memory (goal is omitted)
+            state, action, reward, next_state, done, goal = self.memory.sample(batch_size)
+            state = torch.tensor(state, dtype=torch.float32, device=self.device) # shape (batch_size, state_size)
+            action = torch.tensor(action, dtype=torch.int64, device=self.device) # shape (batch_size,)
+            reward = torch.tensor(reward, dtype=torch.float32, device=self.device) # shape (batch_size,)
+            next_state = torch.tensor(next_state, dtype=torch.float32, device=self.device) # shape (batch_size, state_size)
+            done = torch.tensor(done, dtype=torch.bool, device=self.device) # shape (batch_size,)
+            goal = torch.tensor(goal, dtype=torch.int64, device=self.device) # shape (batch_size,)
 
-        # compute the target Q value
-        q_values_for_goals_next_state = self.model(next_state).gather(2, self.expand_broadcast_goal(goal)).squeeze(2) # shape (batch_size, action_space_size)
-        q_values_for_goals_current_state = self.model(state).gather(2, self.expand_broadcast_goal(goal)).squeeze(2) # shape (batch_size, action_space_size)
-        target = torch.where(done, reward, reward + self.gamma * q_values_for_goals_next_state.max(dim=1)[0])
-        current = q_values_for_goals_current_state.gather(1, action.unsqueeze(1)).squeeze()
+            # compute the target Q value
+            q_values_for_goals_next_state = self.model(next_state).gather(2, self.expand_broadcast_goal(goal)).squeeze(2) # shape (batch_size, action_space_size)
+            q_values_for_goals_current_state = self.model(state).gather(2, self.expand_broadcast_goal(goal)).squeeze(2) # shape (batch_size, action_space_size)
+            target = torch.where(done, reward, reward + self.gamma * q_values_for_goals_next_state.max(dim=1)[0])
+            current = q_values_for_goals_current_state.gather(1, action.unsqueeze(1)).squeeze()
 
-        loss = nn.functional.mse_loss(current, target)
-        loss.backward()
-        loss_value = loss.item()
-        self.optimizer.step()
-        
-        # apply epsilon decay
-        self.epsilon = max(self.epsilon * self.epsilon_decay, self.epsilon_min)
+            loss = nn.functional.mse_loss(current, target)
+            loss.backward()
+            self.optimizer.step()
+            
+            # apply epsilon decay
+            self.epsilon = max(self.epsilon * self.epsilon_decay, self.epsilon_min)
 
-        return loss_value
+            cum_loss += loss.item()
+
+        return cum_loss / opt_steps

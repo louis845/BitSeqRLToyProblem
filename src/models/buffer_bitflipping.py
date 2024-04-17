@@ -269,7 +269,11 @@ class BufferBitflipping(BufferBase):
     
     def sample(self, batch_size: int) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, None]:
         if batch_size > self.buffer_size:
-            indices = np.random.choice(self.buffer_size, batch_size, replace=True)
+            remaining = batch_size % self.buffer_size
+            reps = int(np.floor(batch_size / self.buffer_size))
+            indices = np.tile(np.arange(self.buffer_size), reps)
+            if remaining > 0:
+                indices = np.concatenate((indices, np.random.choice(self.buffer_size, remaining, replace=False)))
         else:
             indices = np.random.choice(self.buffer_size, batch_size, replace=False)
         if self.no_repeat:
