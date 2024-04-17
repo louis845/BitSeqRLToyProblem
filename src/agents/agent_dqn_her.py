@@ -33,7 +33,7 @@ class DQNHERAgent:
                  epsilon: float=1.0,
                  epsilon_min: float=0.01,
                  epsilon_decay: float=0.995,
-                 learning_rate: float=0.001):
+                 learning_rate: float=0.05):
         self.gamma = gamma
         self.epsilon = epsilon
         self.epsilon_min = epsilon_min
@@ -42,7 +42,7 @@ class DQNHERAgent:
 
         self.device = device
         self.model = model
-        self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate, eps=1e-4)
         self.action_space_size = action_space_size
         self.goal_space_size = goal_space_size
 
