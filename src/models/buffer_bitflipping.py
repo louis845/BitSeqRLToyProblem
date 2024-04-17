@@ -176,11 +176,11 @@ class BufferBitflipping(BufferBase):
                 next_states = torch.tensor(next_states, dtype=torch.int32, device=self.device)
                 dones = torch.tensor(dones, dtype=torch.bool, device=self.device)
                 # restrict to the states not existing in the buffer
-                states_repeated = (states.unsqueeze(1) == self.states[:self.buffer_size, :].unsqueeze(0)).all(dim=2).any(dim=1)
-                actions_repeated = (actions.unsqueeze(1) == self.actions[:self.buffer_size].unsqueeze(0)).any(dim=1)
-                next_states_repeated = (next_states.unsqueeze(1) == self.next_states[:self.buffer_size, :].unsqueeze(0)).all(dim=2).any(dim=1)
-                dones_repeated = (dones.unsqueeze(1) == self.dones[:self.buffer_size].unsqueeze(0)).any(dim=1)
-                repeated = states_repeated & actions_repeated & next_states_repeated & dones_repeated
+                states_repeated = (states.unsqueeze(1) == self.states[:self.buffer_size, :].unsqueeze(0)).all(dim=2)
+                actions_repeated = (actions.unsqueeze(1) == self.actions[:self.buffer_size].unsqueeze(0))
+                next_states_repeated = (next_states.unsqueeze(1) == self.next_states[:self.buffer_size, :].unsqueeze(0)).all(dim=2)
+                dones_repeated = (dones.unsqueeze(1) == self.dones[:self.buffer_size].unsqueeze(0))
+                repeated = (states_repeated & actions_repeated & next_states_repeated & dones_repeated).any(dim=1)
                 if repeated.all():
                     return
                 states = states[~repeated]
@@ -219,6 +219,8 @@ class BufferBitflipping(BufferBase):
                 self.rewards[self.buffer_size:self.buffer_size + states.shape[0]].copy_(rewards)
                 self.next_states[self.buffer_size:self.buffer_size + states.shape[0], :].copy_(next_states)
                 self.dones[self.buffer_size:self.buffer_size + states.shape[0]].copy_(dones)
+                # update buffer size
+                self.buffer_size += states.shape[0]
         else:
             # directly add, we allow repeats anyway
             if self.buffer_size == 0:
@@ -264,6 +266,8 @@ class BufferBitflipping(BufferBase):
                 self.rewards[self.buffer_size:self.buffer_size + states.shape[0]] = rewards
                 self.next_states[self.buffer_size:self.buffer_size + states.shape[0], :] = next_states
                 self.dones[self.buffer_size:self.buffer_size + states.shape[0]] = dones
+                # update buffer size
+                self.buffer_size += states.shape[0]
 
         
     

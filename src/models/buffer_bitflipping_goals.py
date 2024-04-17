@@ -195,12 +195,12 @@ class BufferBitflippingGoals(BufferBase):
                 dones = torch.tensor(dones, dtype=torch.bool, device=self.device)
                 goals = torch.tensor(goals, dtype=torch.int32, device=self.device)
                 # restrict to the states not existing in the buffer
-                states_repeated = (states.unsqueeze(1) == self.states[:self.buffer_size, :].unsqueeze(0)).all(dim=2).any(dim=1)
-                actions_repeated = (actions.unsqueeze(1) == self.actions[:self.buffer_size].unsqueeze(0)).any(dim=1)
-                next_states_repeated = (next_states.unsqueeze(1) == self.next_states[:self.buffer_size, :].unsqueeze(0)).all(dim=2).any(dim=1)
-                dones_repeated = (dones.unsqueeze(1) == self.dones[:self.buffer_size].unsqueeze(0)).any(dim=1)
-                goals_repeated = (goals.unsqueeze(1) == self.goals[:self.buffer_size].unsqueeze(0)).any(dim=1)
-                repeated = states_repeated & actions_repeated & next_states_repeated & dones_repeated & goals_repeated
+                states_repeated = (states.unsqueeze(1) == self.states[:self.buffer_size, :].unsqueeze(0)).all(dim=2)
+                actions_repeated = (actions.unsqueeze(1) == self.actions[:self.buffer_size].unsqueeze(0))
+                next_states_repeated = (next_states.unsqueeze(1) == self.next_states[:self.buffer_size, :].unsqueeze(0)).all(dim=2)
+                dones_repeated = (dones.unsqueeze(1) == self.dones[:self.buffer_size].unsqueeze(0))
+                goals_repeated = (goals.unsqueeze(1) == self.goals[:self.buffer_size].unsqueeze(0))
+                repeated = (states_repeated & actions_repeated & next_states_repeated & dones_repeated & goals_repeated).any(dim=1)
                 if repeated.all():
                     return
                 states = states[~repeated]
@@ -263,6 +263,8 @@ class BufferBitflippingGoals(BufferBase):
                 self.next_states[:self.buffer_size, :] = next_states
                 self.dones[:self.buffer_size] = dones
                 self.goals[:self.buffer_size] = goals
+                # update buffer size
+                self.buffer_size += states.shape[0]
             else:
                 new_length = self.states.shape[0]
                 while new_length < self.buffer_size + states.shape[0]:
@@ -295,6 +297,8 @@ class BufferBitflippingGoals(BufferBase):
                 self.next_states[self.buffer_size:self.buffer_size + states.shape[0], :] = next_states
                 self.dones[self.buffer_size:self.buffer_size + states.shape[0]] = dones
                 self.goals[self.buffer_size:self.buffer_size + states.shape[0]] = goals
+                # update buffer size
+                self.buffer_size += states.shape[0]
     
     def sample(self, batch_size: int) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         if batch_size > self.buffer_size:

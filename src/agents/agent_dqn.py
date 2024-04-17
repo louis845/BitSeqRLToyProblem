@@ -27,8 +27,8 @@ class DQNAgent:
 
                  gamma: float=0.95,
                  epsilon: float=1.0,
-                 epsilon_min: float=0.01,
-                 epsilon_decay: float=0.995,
+                 epsilon_min: float=0.05,
+                 epsilon_decay: float=0.999,
                  learning_rate: float=0.001):
         self.gamma = gamma
         self.epsilon = epsilon
