@@ -20,6 +20,7 @@ class BufferBitflippingGoals(BufferBase):
     n: int
     no_repeat: bool
     device: torch.device
+    n_exp: np.ndarray
 
     def __init__(self, n: int, no_repeat: bool = False, device: torch.device = torch.device("cpu")):
         self.n = n
@@ -41,6 +42,7 @@ class BufferBitflippingGoals(BufferBase):
             self.dones = np.zeros((0,), dtype=bool)
             self.goals = np.zeros((0,), dtype=np.int32)
         self.buffer_size = 0
+        self.n_exp = 2 ** np.arange(n, dtype=np.int64)
     
     def __len__(self) -> int:
         return self.buffer_size
