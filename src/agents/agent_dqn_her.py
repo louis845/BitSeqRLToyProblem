@@ -56,7 +56,7 @@ class DQNHERAgent:
         print("learning_rate: {}".format(learning_rate))
 
     def remember(self, state, action, reward, next_state, done, goal):
-        self.memory.append_multiple(state, action, reward, next_state, done, goal)
+        self.memory.append_multiple_at_once(state, action, reward, next_state, done, goal)
     
     def expand_broadcast_goal(self, goal: torch.tensor) -> torch.tensor:
         return goal.unsqueeze(1).unsqueeze(2).expand(-1, self.action_space_size, -1)
@@ -113,10 +113,9 @@ class DQNHERAgent:
 
         loss = nn.functional.mse_loss(current, target)
         loss.backward()
-        loss_value = loss.item()
         self.optimizer.step()
         
         # apply epsilon decay
         self.epsilon = max(self.epsilon * self.epsilon_decay, self.epsilon_min)
 
-        return loss_value
+        return loss.item()
