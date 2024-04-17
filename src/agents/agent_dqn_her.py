@@ -93,7 +93,7 @@ class DQNHERAgent:
                 else:
                     return self.model(state_float).gather(2, self.expand_broadcast_goal(goal)).squeeze(2).argmax(dim=1)
 
-    def replay(self, batch_size):
+    def replay(self, batch_size) -> float:
         if len(self.memory) < batch_size:
             return
         
@@ -116,7 +116,10 @@ class DQNHERAgent:
 
         loss = nn.functional.mse_loss(current, target)
         loss.backward()
+        loss_value = loss.item()
         self.optimizer.step()
         
         # apply epsilon decay
         self.epsilon = max(self.epsilon * self.epsilon_decay, self.epsilon_min)
+
+        return loss_value
