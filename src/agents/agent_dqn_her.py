@@ -94,9 +94,6 @@ class DQNHERAgent:
                     return self.model(state_float).gather(2, self.expand_broadcast_goal(goal)).squeeze(2).argmax(dim=1)
 
     def replay(self, batch_size) -> float:
-        if len(self.memory) < batch_size:
-            return
-        
         self.optimizer.zero_grad()
 
         # sample a minibatch from the memory (goal is omitted)

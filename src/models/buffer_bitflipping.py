@@ -128,8 +128,8 @@ class BufferBitflipping(BufferBase):
         else:
             indices = np.random.choice(self.buffer_size, batch_size, replace=False)
         if self.no_repeat:
-            return self.states[indices].cpu().numpy(), self.actions[indices].cpu().numpy(), self.rewards[indices].cpu().numpy(),\
-                self.next_states[indices].cpu().numpy(), self.dones[indices].cpu().numpy(), None
+            return self.states[indices, :].cpu().numpy(), self.actions[indices].cpu().numpy(), self.rewards[indices].cpu().numpy(),\
+                self.next_states[indices, :].cpu().numpy(), self.dones[indices].cpu().numpy(), None
         else:
             return self.states[indices], self.actions[indices], self.rewards[indices], self.next_states[indices], self.dones[indices], None
     

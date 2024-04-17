@@ -71,9 +71,6 @@ class DQNAgent:
                 return self.model(state_float).argmax(dim=1)
 
     def replay(self, batch_size):
-        if len(self.memory) < batch_size:
-            return
-        
         self.optimizer.zero_grad()
 
         # sample a minibatch from the memory (goal is omitted)
@@ -94,3 +91,5 @@ class DQNAgent:
         
         # apply epsilon decay
         self.epsilon = max(self.epsilon * self.epsilon_decay, self.epsilon_min)
+
+        return loss.item()
