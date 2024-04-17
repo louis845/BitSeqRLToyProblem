@@ -87,9 +87,9 @@ GFlowNets provide a new paradigm for finetuning LLMs with respect to some energy
 
 
 \section{Background}
-Recent work has shown that GFlowNets are able to generate diverse samples for LLMs, and finetune LLMs according to Bayesian updates \cite{hu_llm}. However, their experiments are limited to generating text sequences of short length. How do we generate text sequences of larger lengths? It is evident that most strings have low reward due to the large search space of the set of all possible text sequences.
+Recent work has shown that GFlowNets are able to generate diverse samples for LLMs, and finetune LLMs according to Bayesian updates (\cite{hu_llm}). However, their experiments are limited to generating text sequences of short length. How do we generate text sequences of larger lengths? It is evident that most strings have low reward due to the large search space of the set of all possible text sequences.
 
-In this mini-project, we attempt to tackle a similar toy problem, that is, to generate a specific bit sequence in the set of all bit sequences. We first apply a naive DQN method for sequence generation, and show that the method only works for small $n$. Then we attempt to apply Hindsight Experience Replay \cite{hindsight_openai} by OpenAI to see whether the method successfully generates the correct bit sequences for longer sequence lengths.
+In this mini-project, we attempt to tackle a similar toy problem, that is, to generate a specific bit sequence in the set of all bit sequences. We first apply a naive DQN method for sequence generation, and show that the method only works for small $n$. Then we attempt to apply Hindsight Experience Replay (\cite{hindsight_openai}) by OpenAI to see whether the method successfully generates the correct bit sequences for longer sequence lengths.
 
 \section{Problem setting}
 Here we attempt to use a DQN to generate a predesignated randomly picked target bit sequence. In each setting, an integer $1 \leq n \leq 50$ is fixed, and the state space is $\mathcal{S}_n=\{0,1\}^n$. Before the training process, we pre-pick a sequence $s \in \mathcal{S}_n$ randomly (e.g $00110$ for $\mathcal{S}_5$). During training, the goal of the DQN network is to generate the sequence $s$, where the reward is $1$ for arriving at $s$, and $0$ for arriving at other $\mathcal{S}_n \ni s' \neq s$. 
@@ -100,6 +100,6 @@ The intuition is that, for low values of $n$ (maybe $1 \leq n \leq 10$?), a naiv
 \section{Experiments}
 Coming soon ASAP......
 
-\bibliographystyle{abbrvnat}
+\bibliographystyle{plainnat}
 \bibliography{citations}
 \end{document}

@@ -5,3 +5,5 @@ docs/docs.log
 docs/docs.out
 docs/docs.synctex
 docs/docs.tps
+**/__pycache__/*
+**/.ipynb_checkpoints/*
