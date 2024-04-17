@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from typing import Any
 from collections.abc import Iterable
 
+import numpy as np
+
 class BufferBase(ABC):
     """Base class for buffer implementations."""
 
@@ -18,6 +20,11 @@ class BufferBase(ABC):
         else:
             for state, action, reward, next_state, done in zip(states, actions, rewards, next_states, dones):
                 self.append(state, action, reward, next_state, done)
+    
+    @abstractmethod
+    def append_multiple_at_once(self, states: np.ndarray, actions: np.ndarray, rewards: np.ndarray, next_states: np.ndarray, dones: np.ndarray, goals: np.ndarray = None):
+        """Append multiple experiences to the buffer, in np format."""
+        raise NotImplementedError
 
     @abstractmethod
     def sample(self, batch_size: int) -> tuple[Any, Any, Any, Any, Any, Any]:

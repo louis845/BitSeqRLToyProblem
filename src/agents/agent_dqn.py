@@ -29,7 +29,7 @@ class DQNAgent:
                  epsilon: float=1.0,
                  epsilon_min: float=0.01,
                  epsilon_decay: float=0.995,
-                 learning_rate: float=0.001):
+                 learning_rate: float=0.05):
         self.gamma = gamma
         self.epsilon = epsilon
         self.epsilon_min = epsilon_min
@@ -38,7 +38,7 @@ class DQNAgent:
 
         self.device = device
         self.model = model
-        self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate, eps=1e-4)
         self.action_space_size = action_space_size
 
         self.memory = buffer
@@ -51,7 +51,7 @@ class DQNAgent:
         print("learning_rate: {}".format(learning_rate))
 
     def remember(self, state, action, reward, next_state, done):
-        self.memory.append_multiple(state, action, reward, next_state, done)
+        self.memory.append_multiple_at_once(state, action, reward, next_state, done)
 
     def act(self, state: torch.tensor, explore=True) -> torch.tensor:
         """Choose an action based on the current state.
