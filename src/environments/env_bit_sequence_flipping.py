@@ -10,7 +10,7 @@ class FlippingBitSequenceEnv(gym.Env):
     The target is a randomly chosen bit sequence. The graph is still connected, but there are multiple steps the agent has to take to reach the target.
     """
 
-    def __init__(self, n: int, device: torch.device):
+    def __init__(self, n: int, device: torch.device, fix_original_state: bool=False):
         super(FlippingBitSequenceEnv, self).__init__()
         self.observation_space = spaces.MultiBinary(n) # state space of all bit sequences of the same length.
         self.action_space = spaces.Discrete(n) # action space of flipping a bit in the bit sequence. this can be an integer from 0 to n-1.
@@ -19,10 +19,25 @@ class FlippingBitSequenceEnv(gym.Env):
         self.device = device # device to run the environment on
 
         self.state = self.observation_space.sample() # random initial state
+        self.original_initial_state = self.state
         self.target = self.observation_space.sample() # random target state
+        distance = (self.state != self.target).sum()
+        while distance == 0:
+            self.target = self.observation_space.sample()
+            distance = (self.state != self.target).sum()
         self.target = torch.tensor(self.target, dtype=torch.long, device=self.device)
 
         print("Initialized FlippingBitSequenceEnv with n = {}. Randomly picked target: {}".format(n, self.target))
+        print("Initial distance to target: {}".format(distance))
+
+        self.fix_original_state = fix_original_state
+        self.initial_distance = distance
+    
+    def distance_to_target(self, state: torch.tensor) -> torch.tensor:
+        """
+        Calculate the taxicab distance from the state to the target.
+        """
+        return (state != self.target.unsqueeze(0)).sum(dim=1)
 
     def step(self, action: torch.Tensor):
         """
@@ -60,9 +75,14 @@ class FlippingBitSequenceEnv(gym.Env):
         return self.state, reward, done, info
 
     def reset(self, num_agents: int=1):
-        self.state = torch.tensor(
-            np.stack([self.observation_space.sample() for _ in range(num_agents)], axis=0),
-            dtype=torch.long, device=self.device)
+        if self.fix_original_state:
+            self.state = torch.tensor(
+                np.stack([self.original_initial_state for _ in range(num_agents)], axis=0),
+                dtype=torch.long, device=self.device)
+        else:
+            self.state = torch.tensor(
+                np.stack([self.observation_space.sample() for _ in range(num_agents)], axis=0),
+                dtype=torch.long, device=self.device)
         return self.state
 
     def render(self, mode='human'):
@@ -70,3 +90,6 @@ class FlippingBitSequenceEnv(gym.Env):
 
     def close(self):
         pass
+
+    def get_initial_distance(self) -> int:
+        return self.initial_distance

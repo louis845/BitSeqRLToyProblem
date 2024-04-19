@@ -21,8 +21,10 @@ class BufferBitflippingGoals(BufferBase):
     no_repeat: bool
     device: torch.device
     n_exp: np.ndarray
+    max_buffer_size: int
 
-    def __init__(self, n: int, no_repeat: bool = False, device: torch.device = torch.device("cpu")):
+    def __init__(self, n: int, no_repeat: bool = False, device: torch.device = torch.device("cpu"),
+                 max_buffer_size: int=None):
         self.n = n
         self.no_repeat = no_repeat
         self.device = device
@@ -43,6 +45,7 @@ class BufferBitflippingGoals(BufferBase):
             self.goals = np.zeros((0,), dtype=np.int32)
         self.buffer_size = 0
         self.n_exp = 2 ** np.arange(n, dtype=np.int64)
+        self.max_buffer_size = max_buffer_size
     
     def __len__(self) -> int:
         return self.buffer_size
@@ -138,6 +141,7 @@ class BufferBitflippingGoals(BufferBase):
                 self.goals[self.buffer_size] = goal
             
         self.buffer_size += 1
+        self.shrink_buffer_if_needed()
     
     def append_multiple_at_once(self, states: np.ndarray, actions: np.ndarray, rewards: np.ndarray, next_states: np.ndarray, dones: np.ndarray, goals: np.ndarray):
         if self.no_repeat:
@@ -155,7 +159,7 @@ class BufferBitflippingGoals(BufferBase):
             goals = goals[sort_indices]
 
             # ok, now remove duplicates using np.diff
-            all_same = (np.diff(states) == 0) & (np.diff(actions) == 0) & (np.diff(rewards) == 0) & (np.diff(next_states) == 0) & (np.diff(dones) == 0) & (np.diff(goals) == 0)
+            all_same = (np.diff(states) == 0) & (np.diff(actions) == 0) & (np.diff(next_states) == 0) & (np.diff(dones) == 0) & (np.diff(goals) == 0)
             unique_indices = np.concatenate(([True], ~all_same))
             states = states[unique_indices]
             actions = actions[unique_indices]
@@ -244,6 +248,8 @@ class BufferBitflippingGoals(BufferBase):
                 self.next_states[self.buffer_size:self.buffer_size + states.shape[0], :].copy_(next_states)
                 self.dones[self.buffer_size:self.buffer_size + states.shape[0]].copy_(dones)
                 self.goals[self.buffer_size:self.buffer_size + states.shape[0]].copy_(goals)
+                # update buffer size
+                self.buffer_size += states.shape[0]
         else:
             # directly add, we allow repeats anyway
             if self.buffer_size == 0:
@@ -253,7 +259,7 @@ class BufferBitflippingGoals(BufferBase):
                 self.actions = np.zeros(new_length, dtype=np.int32)
                 self.rewards = np.zeros(new_length, dtype=np.float32)
                 self.next_states = np.zeros((new_length, self.n), dtype=np.int32)
-                self.dones = np.zeros(new_length, dtype=np.bool)
+                self.dones = np.zeros(new_length, dtype=bool)
                 self.goals = np.zeros(new_length, dtype=np.int32)
                 self.buffer_size = states.shape[0]
                 # set the values
@@ -263,8 +269,6 @@ class BufferBitflippingGoals(BufferBase):
                 self.next_states[:self.buffer_size, :] = next_states
                 self.dones[:self.buffer_size] = dones
                 self.goals[:self.buffer_size] = goals
-                # update buffer size
-                self.buffer_size += states.shape[0]
             else:
                 new_length = self.states.shape[0]
                 while new_length < self.buffer_size + states.shape[0]:
@@ -274,7 +278,7 @@ class BufferBitflippingGoals(BufferBase):
                     new_actions = np.zeros(new_length, dtype=np.int32)
                     new_rewards = np.zeros(new_length, dtype=np.float32)
                     new_next_states = np.zeros((new_length, self.n), dtype=np.int32)
-                    new_dones = np.zeros(new_length, dtype=np.bool)
+                    new_dones = np.zeros(new_length, dtype=bool)
                     new_goals = np.zeros(new_length, dtype=np.int32)
                     new_states[:self.buffer_size, :] = self.states[:self.buffer_size, :]
                     new_actions[:self.buffer_size] = self.actions[:self.buffer_size]
@@ -299,7 +303,29 @@ class BufferBitflippingGoals(BufferBase):
                 self.goals[self.buffer_size:self.buffer_size + states.shape[0]] = goals
                 # update buffer size
                 self.buffer_size += states.shape[0]
+        self.shrink_buffer_if_needed()
     
+    def shrink_buffer_if_needed(self):
+        if self.max_buffer_size is not None and self.buffer_size > self.max_buffer_size:
+            # keep the elements with highest rewards, and latest max_buffer_size elements
+            if self.no_repeat:
+                idxsort = np.argsort(self.rewards[:self.buffer_size].abs().cpu().numpy(), kind="stable")
+                self.states[:self.max_buffer_size, :].copy_(self.states[idxsort[-self.max_buffer_size:], :])
+                self.actions[:self.max_buffer_size].copy_(self.actions[idxsort[-self.max_buffer_size:]])
+                self.rewards[:self.max_buffer_size].copy_(self.rewards[idxsort[-self.max_buffer_size:]])
+                self.next_states[:self.max_buffer_size, :].copy_(self.next_states[idxsort[-self.max_buffer_size:], :])
+                self.dones[:self.max_buffer_size].copy_(self.dones[idxsort[-self.max_buffer_size:]])
+                self.goals[:self.max_buffer_size].copy_(self.goals[idxsort[-self.max_buffer_size:]])
+            else:
+                idxsort = np.argsort(np.abs(self.rewards[:self.buffer_size]), kind="stable")
+                self.states[:self.max_buffer_size, :] = self.states[idxsort[-self.max_buffer_size:], :]
+                self.actions[:self.max_buffer_size] = self.actions[idxsort[-self.max_buffer_size:]]
+                self.rewards[:self.max_buffer_size] = self.rewards[idxsort[-self.max_buffer_size:]]
+                self.next_states[:self.max_buffer_size, :] = self.next_states[idxsort[-self.max_buffer_size:], :]
+                self.dones[:self.max_buffer_size] = self.dones[idxsort[-self.max_buffer_size:]]
+                self.goals[:self.max_buffer_size] = self.goals[idxsort[-self.max_buffer_size:]]
+            self.buffer_size = self.max_buffer_size
+
     def sample(self, batch_size: int) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         if batch_size > self.buffer_size:
             remaining = batch_size % self.buffer_size
@@ -308,10 +334,35 @@ class BufferBitflippingGoals(BufferBase):
             if remaining > 0:
                 indices = np.concatenate((indices, np.random.choice(self.buffer_size, remaining, replace=False)))
         else:
-            indices = np.random.choice(self.buffer_size, batch_size, replace=False)
+            rewards = self.rewards[:self.buffer_size].cpu().numpy() if self.no_repeat else self.rewards[:self.buffer_size]
+            uniques = np.unique(rewards)
+
+            indices = np.zeros((batch_size,), dtype=np.int32)
+            mbatch = int(np.ceil(batch_size / len(uniques)))
+            for i, reward in enumerate(uniques):
+                low, high = i * mbatch, min((i + 1) * mbatch, batch_size)
+                matches = np.where(rewards == reward)[0]
+                
+                if high - low > len(matches):
+                    reps = int(np.floor((high - low) / len(matches)))
+                    remaining = (high - low) % len(matches)
+                    indices[low:low + reps * len(matches)] = np.tile(matches, reps)
+                    if remaining > 0:
+                        chosen_indices = np.random.choice(matches, remaining, replace=False)
+                        indices[low + reps * len(matches):high] = chosen_indices
+                else:
+                    chosen_indices = np.random.choice(matches, high - low, replace=False)
+                    indices[low:high] = chosen_indices
         if self.no_repeat:
             return self.states[indices].cpu().numpy(), self.actions[indices].cpu().numpy(), self.rewards[indices].cpu().numpy(),\
                 self.next_states[indices].cpu().numpy(), self.dones[indices].cpu().numpy(), self.goals[indices].cpu().numpy()
         else:
             return self.states[indices], self.actions[indices], self.rewards[indices], self.next_states[indices], self.dones[indices], self.goals[indices]
     
+    def get_avg_reward(self) -> float:
+        if self.buffer_size == 0:
+            return -100.0
+        if self.no_repeat:
+            return self.rewards[:self.buffer_size].mean().item()
+        return self.rewards[:self.buffer_size].mean()
+        
