@@ -5,3 +5,38 @@ Repo for bit sequence DQN RL
 python==3.10.*
 
 `pip install -r requirements.txt`
+
+## Documentation
+ * [`docs/docs.pdf`](docs/docs.pdf)
+
+## Most updated documentation (with possible new research directions)
+ * [most updated docs.pdf]()
+ * We should keep this private for now, check your email!
+
+## Important files
+
+**Environment:**
+
+ * [`src/environments/env_bit_sequence_flipping_rng_target.py`](./src/environments/env_bit_sequence_flipping_rng_target.py)
+
+**Models**
+
+ * [`src/models/model_dqn_bitflipping_target.py`](./src/models/model_dqn_bitflipping_target.py)
+
+**Buffer**
+
+ * [`src/models/buffer_base.py`](src/models/buffer_base.py)
+ * [`src/models/buffer_bitflipping_target.py`](src/models/buffer_bitflipping_target.py)
+
+**Agents**
+
+ * [`src/agents/agent_dqn_target.py`](src/agents/agent_dqn_target.py)
+ * [`src/agents/agent_dqn_target_her.py`](src/agents/agent_dqn_target_her.py)
+
+**Training and evaluation script**
+
+ * [`src/runtime.py`](src/runtime.py)
+
+**Others**
+
+ * [`src/utils.py`](src/utils.py)
