@@ -7,3 +7,4 @@ docs/docs.synctex
 docs/docs.tps
 **/__pycache__/*
 **/.ipynb_checkpoints/*
+*.TMP

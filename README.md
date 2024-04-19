@@ -6,12 +6,12 @@ python==3.10.*
 
 `pip install -r requirements.txt`
 
+## Most updated documentation (with possible new research directions)
+ * [most updated docs.pdf](https://github.com/louis845/BitSeqRLToyProblemPrivateDocs/blob/master/docs/docs.pdf)
+ * We should keep this private for now, check your email!
+
 ## Documentation
  * [`docs/docs.pdf`](docs/docs.pdf)
-
-## Most updated documentation (with possible new research directions)
- * [most updated docs.pdf]()
- * We should keep this private for now, check your email!
 
 ## Important files
 
